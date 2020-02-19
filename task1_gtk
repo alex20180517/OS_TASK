@@ -1,0 +1,126 @@
+#include<sys/types.h>
+#include<unistd.h>
+#include<stdio.h>
+#include<stdlib.h>
+#include<gtk/gtk.h>
+
+GtkTextBuffer *buffer;
+
+void click_event(GtkWidget *widget,gpointer data)
+{
+	g_print("NOW YOU ARE IN %s\n",(gchar *)data);
+}
+
+void click_event2(GtkWidget *widget,gpointer data)
+{
+	const gchar *text={"how are you?\n"};
+	GtkTextIter start,end;
+	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(buffer),&start,&end);
+	gtk_text_buffer_insert(GTK_TEXT_BUFFER(buffer),&end,text,strlen(text));
+}
+
+void over(GtkWidget *widget,gpointer data)
+{
+	gtk_main_quit();
+}
+
+int main(int argc,char *argv[])
+{
+	GtkWidget *window;
+	GtkWidget *button;
+	GtkWidget *frame;
+	GtkWidget *label;
+	GtkWidget *hbox;
+	GtkWidget *vbox;
+	GtkWidget *text_view;
+	GtkWidget *box;
+	
+
+	pid_t process1,process2;
+
+	if((process1=fork()) == 0)
+	{
+		printf("PROCESS_ONE\npid: %d ppid: %d\n",getpid(),getppid());
+		//gtk_init函数在所有gtk程序中都需要调用
+		gtk_init(&argc,&argv);
+
+		//创建一个窗口
+		window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+		gtk_window_set_title(GTK_WINDOW(window),"process1");	//设置窗口标题
+		g_signal_connect(G_OBJECT(window),"destroy",G_CALLBACK(over),NULL);	//将事件与函数进行绑定
+		gtk_container_set_border_width(GTK_CONTAINER(window),100);	//设置窗口宽度
+
+		vbox = gtk_box_new(FALSE,5);
+		hbox = gtk_box_new(FALSE,5);
+		gtk_container_add(GTK_CONTAINER(window),hbox);
+		gtk_box_pack_start(GTK_BOX(hbox),vbox,FALSE,FALSE,0);
+
+		frame = gtk_frame_new("QUOTES");
+		label = gtk_label_new("Be just to all\nbut trust not all");
+		gtk_container_add(GTK_CONTAINER(frame),label);
+		gtk_box_pack_start(GTK_BOX(vbox),frame,FALSE,FALSE,0);
+		
+		
+		//创建一个按钮
+		//button = gtk_button_new_with_label("YOU CAN CLICK IT!");
+		//g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(click_event),"process1");
+		//gtk_container_add(GTK_CONTAINER(window),button);		//讲button放置到window中
+
+		//gtk_widget_show(button);
+		gtk_widget_show_all(window);
+		gtk_main();	//所有gtk程序必须有一个gtk_main函数，程序运行将停在这里等待事件（鼠标或键盘事件）的发生
+		exit(0);
+	}
+	else if((process2=fork())==0)
+	{
+		printf("PROCESS_TWO\npid: %d ppid: %d\n",getpid(),getppid());
+		//gtk_init函数在所有gtk程序中都需要调用
+		gtk_init(&argc,&argv);
+
+		//创建一个窗口
+		window = gtk_window_new(GTK_WINDOW_TOPLEVEL);		
+		gtk_window_set_title(GTK_WINDOW(window),"process2");	//设置窗口标题
+		g_signal_connect(G_OBJECT(window),"destroy",G_CALLBACK(over),NULL);	//将事件与函数进行绑定
+		gtk_container_set_border_width(GTK_CONTAINER(window),100);	//设置窗口宽度
+
+		//创建一个按钮
+		button = gtk_button_new_with_label("YOU CAN CLICK IT!");
+		g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(click_event),"process2");
+		gtk_container_add(GTK_CONTAINER(window),button);		//讲button放置到window中
+
+		gtk_widget_show(button);
+		gtk_widget_show(window);
+		gtk_main();	//所有gtk程序必须有一个gtk_main函数，程序运行将停在这里等待事件（鼠标或键盘事件）的发生
+		exit(0);
+	}
+	else
+	{
+		printf("PROCESS_THREE\npid: %d ppid: %d\n",getpid(),getppid());
+		//gtk_init函数在所有gtk程序中都需要调用
+		gtk_init(&argc,&argv);
+
+		//创建一个窗口
+		window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+		gtk_window_set_title(GTK_WINDOW(window),"process3");	//设置窗口标题
+		g_signal_connect(G_OBJECT(window),"destroy",G_CALLBACK(over),NULL);	//将事件与函数进行绑定
+		gtk_widget_set_size_request(window,400,300);
+
+		box = gtk_box_new(FALSE,0);
+		gtk_container_add(GTK_CONTAINER(window),box);
+		text_view = gtk_text_view_new();
+		gtk_widget_set_size_request(text_view,400,250);
+		gtk_box_pack_start(GTK_BOX(box),text_view,FALSE,FALSE,0);
+		
+		buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(text_view));
+		//创建一个按钮
+		button = gtk_button_new_with_label("CLICK IT!");
+		gtk_box_pack_start(GTK_BOX(box),button,FALSE,FALSE,0);
+		g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(click_event2),"process3");
+
+		//gtk_widget_show(button);
+		gtk_widget_show_all(window);
+		gtk_main();	//所有gtk程序必须有一个gtk_main函数，程序运行将停在这里等待事件（鼠标或键盘事件）的发生
+		exit(0);
+	}
+	return 0;
+}
