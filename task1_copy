@@ -1,0 +1,63 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<fcntl.h>
+#include<errno.h>
+#include<unistd.h>
+#include<sys/types.h>
+#include<sys/stat.h>
+
+#define BUFFER_SIZE 3
+
+int main(int argc,char *argv[])
+{
+	int copy_f,copy_t;
+	int b_read,b_write;
+	char buffer[BUFFER_SIZE];
+	char *p;
+
+	if(argc != 3)	//需要三个参数，第二个和第三个分别为被拷贝的文件以及拷贝至的文件
+	{
+		fprintf(stderr,"Input Error\n");
+		exit(1);
+	}
+
+	if((copy_f = open(argv[1],O_RDONLY))==-1)	//检测被拷贝的文件打开是否正常
+	{
+		fprintf(stderr,"Open %s error:%s\n",argv[1],strerror(errno));
+		exit(2);
+	}
+
+	if((copy_t = open(argv[2],O_WRONLY|O_CREAT,S_IRUSR|S_IWUSR))==-1)	//检测拷贝至的文件是否正常（只写或创建）
+	{
+		fprintf(stderr,"Open %s error:%s\n",argv[2],strerror(errno));
+		exit(3);
+	}
+
+	while(b_read=read(copy_f,buffer,BUFFER_SIZE))
+	{
+		if((b_read==-1)&&(errno!=EINTR))	//errno == EINTR的时候不是出错而是发生了中断
+		break;
+		else if(b_read > 0)	//等于０的时候表示文件已经读取完毕
+		{
+			p = buffer;
+			while(b_write=write(copy_t,p,b_read))
+			{
+				if((b_write==-1)&&(errno!=EINTR))	//写错误
+				break;
+				else if(b_write == b_read)	//读取完毕
+				break;
+				else if(b_write > 0)	//部分读取
+				{
+					p+=b_write;
+					b_read-=b_write;
+				}
+			}
+			if(b_write == -1)
+			break;
+		}
+	}
+	close(copy_f);
+	close(copy_t);
+	return 0;
+}
